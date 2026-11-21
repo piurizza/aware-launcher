@@ -21,28 +21,36 @@ data class ForegroundEvent(val packageName: String, val timestamp: Long, val typ
     }
 }
 
+/** Time in the foreground and number of times an app was brought to the foreground. */
+data class AppUsage(val foregroundMillis: Long = 0L, val opens: Int = 0) {
+    operator fun plus(other: AppUsage) = AppUsage(foregroundMillis + other.foregroundMillis, opens + other.opens)
+}
+
 /**
- * Turns a stream of [ForegroundEvent]s into time spent in the foreground per package.
+ * Turns a stream of [ForegroundEvent]s into time spent in the foreground and opens per package.
  *
  * Model: at most one app is in the foreground at a time. A resume of another app closes the
  * previous app's interval, which keeps totals sane even when the system drops a pause event
- * (for example after a crash or a reboot).
+ * (for example after a crash or a reboot). Every switch into an app counts as one open.
  */
 object UsageCalculator {
 
-    fun foregroundTime(events: List<ForegroundEvent>, windowStart: Long, windowEnd: Long): Map<String, Long> {
-        val totals = HashMap<String, Long>()
+    fun usage(events: List<ForegroundEvent>, windowStart: Long, windowEnd: Long): Map<String, AppUsage> {
+        val totals = HashMap<String, AppUsage>()
         var current: String? = null
         var since = windowStart
         // Until the first resume, the app open at the window start is unknown; a pause reveals it.
         var resumeSeen = false
         var startCredited = false
 
+        fun add(pkg: String, usage: AppUsage) {
+            totals[pkg] = (totals[pkg] ?: AppUsage()) + usage
+        }
+
         fun close(at: Long) {
             val open = current ?: return
             val end = at.coerceIn(windowStart, windowEnd)
-            val elapsed = (end - since).coerceAtLeast(0L)
-            totals[open] = (totals[open] ?: 0L) + elapsed
+            add(open, AppUsage(foregroundMillis = (end - since).coerceAtLeast(0L)))
             current = null
         }
 
@@ -54,12 +62,14 @@ object UsageCalculator {
                         close(event.timestamp)
                         current = event.packageName
                         since = event.timestamp.coerceIn(windowStart, windowEnd)
+                        add(event.packageName, AppUsage(opens = 1))
                     }
                 }
 
                 ForegroundEvent.Type.PAUSED -> {
                     // A pause before any resume means the app was already open when the window began,
-                    // even if a screen-off event was logged before it.
+                    // even if a screen-off event was logged before it. It was opened before the window,
+                    // so it adds time but not an open.
                     if (current == null && !resumeSeen && !startCredited) {
                         current = event.packageName
                         since = windowStart
@@ -75,10 +85,14 @@ object UsageCalculator {
         return totals
     }
 
-    /** Local midnight of the day containing [now]. */
-    fun startOfDay(now: Long, zone: ZoneId): Long = Instant.ofEpochMilli(now)
+    fun foregroundTime(events: List<ForegroundEvent>, windowStart: Long, windowEnd: Long): Map<String, Long> =
+        usage(events, windowStart, windowEnd).mapValues { it.value.foregroundMillis }
+
+    /** Local midnight of the day containing [now], or of the day [daysAgo] days before it. */
+    fun startOfDay(now: Long, zone: ZoneId, daysAgo: Long = 0): Long = Instant.ofEpochMilli(now)
         .atZone(zone)
         .toLocalDate()
+        .minusDays(daysAgo)
         .atStartOfDay(zone)
         .toInstant()
         .toEpochMilli()

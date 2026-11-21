@@ -45,7 +45,7 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         } else {
             app.label
         }
-        holder.usage.text = DurationFormat.forRow(app.usageMillis)
+        holder.usage.text = DurationFormat.forRow(app.usage)
         return view
     }
 

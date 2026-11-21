@@ -125,6 +125,39 @@ class UsageCalculatorTest {
     }
 
     @Test
+    fun `counts each switch into an app as one open`() {
+        val result = UsageCalculator.usage(
+            listOf(
+                event("a", 0, RESUMED),
+                event("a", 50, RESUMED),
+                event("b", 100, RESUMED),
+                event("a", 200, RESUMED),
+                event("", 300, STOP_ALL),
+                event("a", 400, RESUMED),
+                event("a", 500, PAUSED)
+            ),
+            start,
+            end
+        )
+        assertEquals(AppUsage(foregroundMillis = 300, opens = 3), result["a"])
+        assertEquals(AppUsage(foregroundMillis = 100, opens = 1), result["b"])
+    }
+
+    @Test
+    fun `app open at the window start adds time but no open`() {
+        val result = UsageCalculator.usage(listOf(event("a", 250, PAUSED)), start, end)
+        assertEquals(AppUsage(foregroundMillis = 250, opens = 0), result["a"])
+    }
+
+    @Test
+    fun `start of day can go back several days`() {
+        val zone = ZoneId.of("Europe/Rome")
+        val now = LocalDateTime.of(2026, 11, 21, 9, 0).atZone(zone).toInstant().toEpochMilli()
+        val twoDaysAgo = LocalDateTime.of(2026, 11, 19, 0, 0).atZone(zone).toInstant().toEpochMilli()
+        assertEquals(twoDaysAgo, UsageCalculator.startOfDay(now, zone, daysAgo = 2))
+    }
+
+    @Test
     fun `no events means no usage`() {
         assertTrue(UsageCalculator.foregroundTime(emptyList(), start, end).isEmpty())
     }

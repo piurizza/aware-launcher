@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.LauncherApps
 import android.os.Process
 import android.os.UserHandle
+import app.aware.launcher.usage.AppUsage
 import app.aware.launcher.usage.UsageAccess
 import app.aware.launcher.usage.UsageTracker
 import java.text.Collator
@@ -14,7 +15,7 @@ data class AppEntry(
     val component: ComponentName,
     val user: UserHandle,
     val isWorkProfile: Boolean,
-    val usageMillis: Long = 0L
+    val usage: AppUsage = AppUsage()
 )
 
 data class HomeState(val apps: List<AppEntry>, val usageAccessGranted: Boolean, val totalUsageMillis: Long)
@@ -55,14 +56,14 @@ object AppRepository {
         val usage = if (granted) UsageTracker.today(context) else emptyMap()
 
         val withUsage = apps.map { app ->
-            if (app.isWorkProfile) app else app.copy(usageMillis = usage[app.component.packageName] ?: 0L)
+            if (app.isWorkProfile) app else app.copy(usage = usage[app.component.packageName] ?: AppUsage())
         }
         // Count each package once, even if it exposes several launcher activities.
         val total = withUsage
             .filterNot { it.isWorkProfile }
             .map { it.component.packageName }
             .distinct()
-            .sumOf { usage[it] ?: 0L }
+            .sumOf { usage[it]?.foregroundMillis ?: 0L }
         return HomeState(withUsage, granted, total)
     }
 }

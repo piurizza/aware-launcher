@@ -13,7 +13,7 @@ import java.time.ZoneId
  */
 object UsageTracker {
 
-    fun today(context: Context, now: Long = System.currentTimeMillis()): Map<String, Long> {
+    fun today(context: Context, now: Long = System.currentTimeMillis()): Map<String, AppUsage> {
         val manager = context.getSystemService(UsageStatsManager::class.java) ?: return emptyMap()
         val start = UsageCalculator.startOfDay(now, ZoneId.systemDefault())
         val log = manager.queryEvents(start, now)
@@ -33,6 +33,6 @@ object UsageTracker {
                 events += ForegroundEvent(event.packageName.orEmpty(), event.timeStamp, type)
             }
         }
-        return UsageCalculator.foregroundTime(events, start, now)
+        return UsageCalculator.usage(events, start, now)
     }
 }

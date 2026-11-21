@@ -19,4 +19,14 @@ object DurationFormat {
 
     /** Usage label for a single app row, empty when the app was barely used. */
     fun forRow(millis: Long): String = if (millis >= VISIBLE_THRESHOLD_MS) format(millis) else ""
+
+    /**
+     * Usage label with opens: "47m · 23×". Quick checks under a minute still show their opens ("3×"),
+     * because frequent short checks are exactly the habit worth noticing.
+     */
+    fun forRow(usage: AppUsage): String {
+        val time = forRow(usage.foregroundMillis)
+        val opens = if (usage.opens > 0) "${usage.opens}×" else ""
+        return listOf(time, opens).filter { it.isNotEmpty() }.joinToString(" · ")
+    }
 }
