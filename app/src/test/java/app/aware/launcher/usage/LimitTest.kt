@@ -27,8 +27,8 @@ class LimitTest {
 
     @Test
     fun `row label shows usage against the limit`() {
-        assertEquals("12m / 30m", Limit(minutes(30), minutes(12)).rowLabel(opens = 0))
-        assertEquals("1h 05m / 1h 00m · 9×", Limit(minutes(60), minutes(65)).rowLabel(opens = 9))
+        assertEquals("12m / 30m", Limit(minutes(30), minutes(12)).rowLabel())
+        assertEquals("1h 05m / 1h 00m", Limit(minutes(60), minutes(65)).rowLabel())
     }
 
     @Test

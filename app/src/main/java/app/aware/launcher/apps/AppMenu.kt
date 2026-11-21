@@ -8,6 +8,7 @@ import android.widget.PopupMenu
 import app.aware.launcher.R
 import app.aware.launcher.usage.DurationFormat
 import app.aware.launcher.usage.Limit
+import app.aware.launcher.usage.Unused
 
 /** The long-press menu on an app row. */
 class AppMenu(
@@ -21,6 +22,7 @@ class AppMenu(
         val isHidden = app.key in prefs.hidden
         val isDistracting = app.key in prefs.distracting
         val popup = PopupMenu(anchor.context, anchor)
+        info(anchor.context, app)?.let { popup.menu.add(Menu.NONE, INFO, Menu.NONE, it).isEnabled = false }
         popup.menu.add(Menu.NONE, PIN, Menu.NONE, if (isPinned) R.string.menu_unpin else R.string.menu_pin)
         popup.menu.add(Menu.NONE, HIDE, Menu.NONE, if (isHidden) R.string.menu_unhide else R.string.menu_hide)
         popup.menu.add(
@@ -46,6 +48,24 @@ class AppMenu(
             true
         }
         popup.show()
+    }
+
+    /** Today's details for the top of the menu; none for work apps, whose usage Aware can't read. */
+    private fun info(context: Context, app: AppEntry): String? {
+        val days = app.unusedDays
+        val res = context.resources
+        return when {
+            app.isWorkProfile -> null
+            days != null && Unused.isOverAYear(days) -> context.getString(R.string.info_unopened_year)
+            days != null -> res.getQuantityString(R.plurals.info_unopened_days, days, days)
+            app.usage.opens == 0 -> context.getString(R.string.info_not_today)
+            else -> res.getQuantityString(
+                R.plurals.info_today,
+                app.usage.opens,
+                DurationFormat.format(app.usage.foregroundMillis),
+                app.usage.opens
+            )
+        }
     }
 
     private fun limitTitle(context: Context, app: AppEntry): String {
@@ -87,6 +107,7 @@ class AppMenu(
         const val DISTRACTING = 4
         const val LIMIT = 5
         const val STOP = 6
+        const val INFO = 7
         val PREFERENCE_ITEMS = setOf(PIN, HIDE, DISTRACTING)
     }
 }
