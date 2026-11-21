@@ -30,4 +30,11 @@ class DurationFormatTest {
         assertEquals("", DurationFormat.forRow(TimeUnit.SECONDS.toMillis(59)))
         assertEquals("1m", DurationFormat.forRow(minutes(1)))
     }
+
+    @Test
+    fun `rows show time and opens`() {
+        assertEquals("47m · 23×", DurationFormat.forRow(AppUsage(minutes(47), 23)))
+        assertEquals("3×", DurationFormat.forRow(AppUsage(TimeUnit.SECONDS.toMillis(40), 3)))
+        assertEquals("", DurationFormat.forRow(AppUsage()))
+    }
 }
