@@ -12,6 +12,7 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.MotionEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
@@ -23,6 +24,8 @@ import app.aware.launcher.apps.AppMenu
 import app.aware.launcher.apps.AppPrefs
 import app.aware.launcher.apps.AppRepository
 import app.aware.launcher.apps.HomeState
+import app.aware.launcher.gestures.NotificationShade
+import app.aware.launcher.gestures.SwipeDownDetector
 import app.aware.launcher.usage.Comparison
 import app.aware.launcher.usage.DurationFormat
 import java.util.concurrent.ExecutorService
@@ -40,6 +43,7 @@ class MainActivity : Activity() {
     private lateinit var adapter: AppAdapter
     private lateinit var prefs: AppPrefs
     private lateinit var menu: AppMenu
+    private lateinit var swipeDown: SwipeDownDetector
     private lateinit var list: ListView
     private lateinit var search: EditText
     private lateinit var summary: TextView
@@ -90,7 +94,19 @@ class MainActivity : Activity() {
             launchFirst
         }
 
+        // Swipe down opens notifications, unless the list is scrolled and should scroll back up.
+        swipeDown = SwipeDownDetector(
+            this,
+            canTrigger = { !list.canScrollVertically(-1) },
+            onSwipeDown = { NotificationShade.expand(this) }
+        )
+
         launcherApps.registerCallback(packageCallback, Handler(Looper.getMainLooper()))
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        swipeDown.onTouchEvent(event)
+        return super.dispatchTouchEvent(event)
     }
 
     override fun onResume() {
