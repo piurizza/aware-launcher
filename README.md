@@ -2,22 +2,22 @@
 
 A minimalist Android launcher that shows how much time you spend in each app today.
 
-No icons, no widgets, no feeds. A clock, today's total screen time, a search field and a plain
-list of your apps, each with the minutes you spent in it today. The point is to make you pause for
-a second before opening something.
+No icons, no widgets, no feeds. A clock, today's screen time compared with yesterday, a search
+field and a plain list of your apps, each with the time spent and the number of times you opened it
+today. The point is to make you pause for a second before opening something.
 
 ```
 14:32
-Friday, 20 November
-2h 14m on screen today
+Saturday, 21 November
+2h 14m today · 20m less than this time yesterday
 
 Search
 
-Calendar
+Messages                    8m · 12×
 Camera
-Instagram                    1h 02m
-Maps                            12m
-Messages                         8m
+Instagram            47m / 30m · 23×
+Maps                        12m · 2×
+Old Game                unopened 45d
 ```
 
 ## Design goals
@@ -26,7 +26,8 @@ Messages                         8m
   third-party libraries: the release APK is tens of kilobytes and starts instantly.
 - **Light on resources.** No background service. Time spent comes from Android's own usage log
   (`UsageStatsManager`), read only when the home screen is shown. Pure black background for OLED.
-- **Private.** No internet permission, no analytics, no backups. Nothing leaves the phone.
+- **Private.** No internet permission, no analytics, no backups. Nothing leaves the phone. Pins,
+  hidden apps and limits live in a small private settings file, so they reset if Aware is reinstalled.
 
 ## Using it
 
@@ -35,9 +36,24 @@ Messages                         8m
 3. Tap the line under the date and allow **Usage access** for Aware. Without it the launcher still
    works, it just can't show time spent.
 
-- **Tap** an app to open it. **Long-press** for its app info screen (uninstall, permissions…).
-- **Type** to filter; press the keyboard's **Go** key to open the first match.
+- **Tap** an app to open it. **Type** to filter; the keyboard's **Go** key opens the first match.
+- **Tap the summary line** for the last 7 days as a small bar chart, with your daily average.
+- **Swipe down** anywhere on the home screen for notifications.
 - **Home** while already home clears the search and scrolls back to the top.
+
+**Long-press** an app for its menu:
+
+| Option | What it does |
+|---|---|
+| Pin to top | Keeps the app at the top of the list. |
+| Hide | Removes it from the list; it still appears in search, marked `· hidden`. |
+| Mark as distracting | Opening it first shows a **mindful pause**: today's time and opens, and an Open button that unlocks after 3 seconds. |
+| Daily limit… | Shows usage against the limit (`47m / 30m`), turns amber once reached, and adds the pause from then on. Nothing is ever blocked. |
+| App info | Android's app info screen (uninstall, permissions…). |
+
+Apps you haven't opened in 30+ days show `unopened 45d`: a hint they could go.
+
+Usage is per Android profile, so work-profile apps (marked `· work`) show no times and have no limits.
 
 Requires Android 10 (API 29) or newer.
 
