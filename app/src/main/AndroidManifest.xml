@@ -7,6 +7,9 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Lets swipe-down on the home screen open the notification shade. Normal permission. -->
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
