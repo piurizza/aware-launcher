@@ -42,19 +42,43 @@ jobs:
       - name: Run checks
         run: ./gradlew ktlintCheck detekt lintRelease --continue
 
+      # Code scanning accepts one SARIF run per tool and category, so merge each tool's files.
       - name: Collect SARIF reports
         if: ${{ !cancelled() }}
         run: |
-          mkdir -p sarif
-          find app/build/reports -name '*.sarif' -exec cp {} sarif/ \;
-          ls -la sarif
+          merge() {
+            local out="$1"; shift
+            [ "$#" -gt 0 ] || return 0
+            mkdir -p "$(dirname "$out")"
+            jq -s '.[0] + {runs: [(.[0].runs[0] + {results: [.[].runs[].results[]?]})]}' "$@" > "$out"
+          }
+          shopt -s nullglob globstar
+          merge sarif/detekt/detekt.sarif app/build/reports/detekt/*.sarif
+          merge sarif/ktlint/ktlint.sarif app/build/reports/ktlint/**/*.sarif
+          merge sarif/android-lint/android-lint.sarif app/build/reports/lint-results-*.sarif
+          find sarif -name '*.sarif' 2>/dev/null || true
 
       # Findings show up inline on pull requests and in the Security tab.
-      - name: Upload to code scanning
-        if: ${{ !cancelled() && hashFiles('sarif/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      - name: Upload detekt findings
+        if: ${{ !cancelled() && hashFiles('sarif/detekt/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: sarif
+          sarif_file: sarif/detekt
+          category: detekt
+
+      - name: Upload ktlint findings
+        if: ${{ !cancelled() && hashFiles('sarif/ktlint/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif/ktlint
+          category: ktlint
+
+      - name: Upload Android Lint findings
+        if: ${{ !cancelled() && hashFiles('sarif/android-lint/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif/android-lint
+          category: android-lint
 
       - name: Upload HTML reports
         if: ${{ failure() }}

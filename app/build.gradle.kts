@@ -72,6 +72,9 @@ android {
         checkReleaseBuilds = true
         sarifReport = true
         htmlReport = true
+        // Print every finding to the CI log, not just the first one.
+        textReport = true
+        textOutput = file("stdout")
         // Version freshness is Dependabot's job, not a reason to fail a build.
         disable += setOf(
             "OldTargetApi",
