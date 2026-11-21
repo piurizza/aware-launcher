@@ -4,6 +4,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import java.time.ZoneId
+import java.util.concurrent.TimeUnit
 
 /**
  * Reads foreground time from the system's own usage log.
@@ -43,4 +44,33 @@ object UsageTracker {
         }
         return if (events.isEmpty()) null else UsageCalculator.usage(events, start, end)
     }
+
+    /**
+     * When each package was last on screen, from the system's long-term usage summaries. Cached for
+     * an hour: the answer only matters for apps unopened for weeks, and the query covers a year.
+     */
+    @Synchronized
+    fun lastVisible(context: Context, now: Long = System.currentTimeMillis()): Map<String, Long> {
+        val cached = lastVisibleCache
+        val fresh = if (cached != null && now - lastVisibleAt < LAST_VISIBLE_TTL_MS) {
+            cached
+        } else {
+            queryLastVisible(context, now).also {
+                lastVisibleCache = it
+                lastVisibleAt = now
+            }
+        }
+        return fresh
+    }
+
+    private fun queryLastVisible(context: Context, now: Long): Map<String, Long> {
+        val manager = context.getSystemService(UsageStatsManager::class.java) ?: return emptyMap()
+        val stats = manager.queryAndAggregateUsageStats(now - TimeUnit.DAYS.toMillis(LAST_VISIBLE_RANGE_DAYS), now)
+        return stats.mapValues { it.value.lastTimeVisible }.filterValues { it > 0L }
+    }
+
+    private const val LAST_VISIBLE_RANGE_DAYS = 400L
+    private val LAST_VISIBLE_TTL_MS = TimeUnit.HOURS.toMillis(1)
+    private var lastVisibleCache: Map<String, Long>? = null
+    private var lastVisibleAt = 0L
 }
