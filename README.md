@@ -67,6 +67,7 @@ Requirements: JDK 17 and the Android SDK (Android Studio installs both).
 ```
 
 Debug builds use the application ID `app.aware.launcher.debug`, so they install alongside a release build.
+They are signed with the public `app/debug.keystore`, so each CI debug build installs over the previous one.
 
 ## Quality checks
 
