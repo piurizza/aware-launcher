@@ -95,6 +95,36 @@ class UsageCalculatorTest {
     }
 
     @Test
+    fun `app open at the window start is counted even when screen off is logged first`() {
+        val result = UsageCalculator.foregroundTime(
+            listOf(event("", 600, STOP_ALL), event("a", 610, PAUSED)),
+            start,
+            end
+        )
+        assertEquals(610L, result["a"])
+    }
+
+    @Test
+    fun `only one app can be credited from the window start`() {
+        val result = UsageCalculator.foregroundTime(
+            listOf(event("a", 100, PAUSED), event("b", 200, PAUSED)),
+            start,
+            end
+        )
+        assertEquals(mapOf("a" to 100L), result)
+    }
+
+    @Test
+    fun `a stray pause after a resume is not credited from the window start`() {
+        val result = UsageCalculator.foregroundTime(
+            listOf(event("a", 0, RESUMED), event("a", 100, PAUSED), event("b", 500, PAUSED)),
+            start,
+            end
+        )
+        assertEquals(mapOf("a" to 100L), result)
+    }
+
+    @Test
     fun `no events means no usage`() {
         assertTrue(UsageCalculator.foregroundTime(emptyList(), start, end).isEmpty())
     }
