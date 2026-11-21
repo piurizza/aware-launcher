@@ -15,6 +15,17 @@
     <string name="menu_unpin">Unpin</string>
     <string name="menu_hide">Hide</string>
     <string name="menu_unhide">Unhide</string>
+    <string name="menu_distracting">Mark as distracting</string>
+    <string name="menu_not_distracting">Not distracting</string>
+    <string name="pause_open">Open</string>
+    <string name="pause_open_countdown">Open (%1$d)</string>
+    <string name="pause_not_now">Not now</string>
+    <string name="pause_question">Still want to open it?</string>
+    <string name="pause_time">%1$s on screen today</string>
+    <plurals name="pause_opens">
+        <item quantity="one">Opened %d time today</item>
+        <item quantity="other">Opened %d times today</item>
+    </plurals>
     <string name="menu_app_info">App info</string>
     <string name="date_format" translatable="false">EEEE, d MMMM</string>
 </resources>
