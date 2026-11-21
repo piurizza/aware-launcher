@@ -28,6 +28,14 @@ android {
     }
 
     signingConfigs {
+        // A fixed, public debug key, so every CI debug build installs over the previous one.
+        // Debug builds use a different application ID (.debug), so this key can never sign a release.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (keystorePath != null) {
             create("release") {
                 storeFile = file(keystorePath)
