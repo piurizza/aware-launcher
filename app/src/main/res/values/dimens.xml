@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="screen_margin">24dp</dimen>
+    <dimen name="item_spacing">12dp</dimen>
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="clock_text">56sp</dimen>
+    <dimen name="app_text">20sp</dimen>
+    <dimen name="secondary_text">14sp</dimen>
+</resources>

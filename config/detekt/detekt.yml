@@ -1,0 +1,24 @@
+# Overrides on top of detekt's default rule set (buildUponDefaultConfig = true).
+
+build:
+  maxIssues: 0
+
+style:
+  MaxLineLength:
+    maxLineLength: 120
+  ForbiddenComment:
+    active: true
+  UnusedPrivateMember:
+    active: true
+  UnusedImports:
+    active: true
+
+naming:
+  FunctionNaming:
+    # Backtick test names like `formats minutes`.
+    excludes: ['**/test/**']
+
+complexity:
+  TooManyFunctions:
+    # Activities override many framework callbacks by design.
+    ignoreOverridden: true

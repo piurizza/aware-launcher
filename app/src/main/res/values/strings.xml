@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aware</string>
+    <string name="search_hint">Search</string>
+    <string name="summary_today">%1$s on screen today</string>
+    <string name="usage_access_prompt">Tap to allow usage access and see time spent per app</string>
+    <string name="date_format" translatable="false">EEEE, d MMMM</string>
+</resources>

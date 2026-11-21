@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  workflows:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        run: |
+          pip install --quiet actionlint-py
+          actionlint -color
+
+  static-analysis:
+    name: Format, detekt, Android lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      # Also validates the Gradle wrapper checksum.
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run checks
+        run: ./gradlew ktlintCheck detekt lintRelease --continue
+
+      - name: Collect SARIF reports
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p sarif
+          find app/build/reports -name '*.sarif' -exec cp {} sarif/ \;
+          ls -la sarif
+
+      # Findings show up inline on pull requests and in the Security tab.
+      - name: Upload to code scanning
+        if: ${{ !cancelled() && hashFiles('sarif/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif
+
+      - name: Upload HTML reports
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: app/build/reports/
+          retention-days: 7
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Upload test reports
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          retention-days: 7
+
+  build:
+    name: Compile and assemble
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Kotlin compiles with allWarningsAsErrors, so this is also the type-check gate.
+      # The release build runs R8, so shrinking problems surface here, not at release time.
+      - name: Assemble debug and release
+        run: ./gradlew assembleDebug assembleRelease
+
+      - name: Report APK size
+        run: |
+          {
+            echo "### APK size"
+            echo "| Variant | Size |"
+            echo "|---|---|"
+            for apk in app/build/outputs/apk/*/*.apk; do
+              echo "| $(basename "$apk") | $(du -h "$apk" | cut -f1) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aware-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
