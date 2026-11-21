@@ -7,6 +7,7 @@ import android.os.Process
 import android.os.UserHandle
 import app.aware.launcher.usage.AppUsage
 import app.aware.launcher.usage.DayTotal
+import app.aware.launcher.usage.Unused
 import app.aware.launcher.usage.UsageAccess
 import app.aware.launcher.usage.UsageCalculator
 import app.aware.launcher.usage.UsageTracker
@@ -22,7 +23,10 @@ data class AppEntry(
     val component: ComponentName,
     val user: UserHandle,
     val isWorkProfile: Boolean,
-    val usage: AppUsage = AppUsage()
+    val installedAt: Long,
+    val usage: AppUsage = AppUsage(),
+    /** Days since last opened, when that is at least [Unused.THRESHOLD_DAYS]; null otherwise. */
+    val unusedDays: Int? = null
 )
 
 data class HomeState(
@@ -54,7 +58,8 @@ object AppRepository {
                     label = info.label.toString(),
                     component = info.componentName,
                     user = info.user,
-                    isWorkProfile = info.user != ownUser
+                    isWorkProfile = info.user != ownUser,
+                    installedAt = info.firstInstallTime
                 )
             }
             .sortedWith { a, b -> collator.compare(a.label, b.label) }
@@ -69,8 +74,13 @@ object AppRepository {
         if (!granted) return HomeState(apps, usageAccessGranted = false, 0L, null)
 
         val usage = UsageTracker.today(context, now)
+        val lastVisible = UsageTracker.lastVisible(context, now)
         val withUsage = apps.map { app ->
-            if (app.isWorkProfile) app else app.copy(usage = usage[app.component.packageName] ?: AppUsage())
+            if (app.isWorkProfile) return@map app
+            val pkg = app.component.packageName
+            val today = usage[pkg] ?: AppUsage()
+            val usedToday = today.opens > 0 || today.foregroundMillis > 0
+            app.copy(usage = today, unusedDays = Unused.days(lastVisible[pkg], app.installedAt, now, usedToday))
         }
         val packages = ownPackages(apps)
 

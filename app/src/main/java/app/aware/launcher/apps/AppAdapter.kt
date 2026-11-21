@@ -7,6 +7,7 @@ import android.widget.BaseAdapter
 import android.widget.TextView
 import app.aware.launcher.R
 import app.aware.launcher.usage.DurationFormat
+import app.aware.launcher.usage.Unused
 
 /** Plain-text app list. Uses the framework ListView so there are no library dependencies. */
 class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
@@ -45,7 +46,7 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         } else {
             app.label
         }
-        holder.usage.text = DurationFormat.forRow(app.usage)
+        holder.usage.text = app.unusedDays?.let(Unused::label) ?: DurationFormat.forRow(app.usage)
         return view
     }
 
