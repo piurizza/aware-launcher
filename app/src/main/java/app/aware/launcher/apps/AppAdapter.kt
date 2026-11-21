@@ -1,5 +1,8 @@
 package app.aware.launcher.apps
 
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -64,7 +67,12 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         val view = convertView ?: inflater.inflate(R.layout.item_app, parent, false).also { it.tag = Holder(it) }
         val holder = view.tag as Holder
         val app = visible[position]
-        holder.label.text = label(view, app)
+        holder.label.text = withRunningDot(view, label(view, app), app.isRunningInBackground)
+        holder.label.contentDescription = if (app.isRunningInBackground) {
+            view.context.getString(R.string.running_description, label(view, app))
+        } else {
+            null
+        }
         val limit = limitFor(app)
         holder.usage.text = when {
             app.unusedDays != null -> Unused.label(app.unusedDays)
@@ -80,6 +88,17 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         val name = if (app.isWorkProfile) view.context.getString(R.string.work_app_label, app.label) else app.label
         // Hidden apps only appear in search results; say so, so they can be found and unhidden.
         return if (app.key in hidden) view.context.getString(R.string.hidden_app_label, name) else name
+    }
+
+    /** A small coloured dot after the name of an app that keeps running in the background. */
+    private fun withRunningDot(view: View, name: String, running: Boolean): CharSequence {
+        if (!running) return name
+        val text = SpannableStringBuilder(name).append("  ")
+        val start = text.length
+        text.append(view.context.getString(R.string.running_dot))
+        val color = ForegroundColorSpan(view.context.getColor(R.color.running))
+        text.setSpan(color, start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        return text
     }
 
     private class Holder(view: View) {

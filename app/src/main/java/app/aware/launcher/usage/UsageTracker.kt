@@ -1,8 +1,10 @@
 package app.aware.launcher.usage
 
 import android.app.usage.UsageEvents
+import android.app.usage.UsageEventsQuery
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.os.Build
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
@@ -68,6 +70,50 @@ object UsageTracker {
         val stats = manager.queryAndAggregateUsageStats(now - TimeUnit.DAYS.toMillis(LAST_VISIBLE_RANGE_DAYS), now)
         return stats.mapValues { it.value.lastTimeVisible }.filterValues { it > 0L }
     }
+
+    /**
+     * Packages currently running a foreground service. On Android 15+ the query asks the system for
+     * just those event types, so a week of history stays cheap; older versions read two days.
+     */
+    fun runningInBackground(context: Context, now: Long = System.currentTimeMillis()): Set<String> {
+        val manager = context.getSystemService(UsageStatsManager::class.java)
+        val log = manager?.let { serviceEvents(it, now) } ?: return emptySet()
+
+        val events = ArrayList<ServiceEvent>()
+        val event = UsageEvents.Event()
+        while (log.hasNextEvent()) {
+            log.getNextEvent(event)
+            val type = when (event.eventType) {
+                UsageEvents.Event.FOREGROUND_SERVICE_START -> ServiceEvent.Type.STARTED
+                UsageEvents.Event.FOREGROUND_SERVICE_STOP -> ServiceEvent.Type.STOPPED
+                UsageEvents.Event.DEVICE_SHUTDOWN,
+                UsageEvents.Event.DEVICE_STARTUP -> ServiceEvent.Type.RESET
+                else -> null
+            }
+            if (type != null) {
+                events += ServiceEvent(event.packageName.orEmpty(), event.className.orEmpty(), type)
+            }
+        }
+        return BackgroundServices.running(events)
+    }
+
+    private fun serviceEvents(manager: UsageStatsManager, now: Long): UsageEvents? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            val query = UsageEventsQuery.Builder(now - TimeUnit.DAYS.toMillis(SERVICE_RANGE_DAYS), now)
+                .setEventTypes(
+                    UsageEvents.Event.FOREGROUND_SERVICE_START,
+                    UsageEvents.Event.FOREGROUND_SERVICE_STOP,
+                    UsageEvents.Event.DEVICE_SHUTDOWN,
+                    UsageEvents.Event.DEVICE_STARTUP
+                )
+                .build()
+            manager.queryEvents(query)
+        } else {
+            manager.queryEvents(now - TimeUnit.DAYS.toMillis(SERVICE_RANGE_DAYS_LEGACY), now)
+        }
+
+    private const val SERVICE_RANGE_DAYS = 7L
+    private const val SERVICE_RANGE_DAYS_LEGACY = 2L
 
     private const val LAST_VISIBLE_RANGE_DAYS = 400L
     private val LAST_VISIBLE_TTL_MS = TimeUnit.HOURS.toMillis(1)

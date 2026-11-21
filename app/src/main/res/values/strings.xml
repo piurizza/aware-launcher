@@ -32,6 +32,9 @@
     <string name="limit_none">No limit</string>
     <string name="pause_limit_left">Limit %1$s · %2$s left</string>
     <string name="pause_limit_over">Limit %1$s · %2$s over</string>
+    <string name="menu_stop">Stop… (running in background)</string>
+    <string name="running_dot" translatable="false">●</string>
+    <string name="running_description">%1$s, running in background</string>
     <string name="menu_app_info">App info</string>
     <string name="date_format" translatable="false">EEEE, d MMMM</string>
 </resources>
