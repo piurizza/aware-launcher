@@ -10,5 +10,11 @@
     <string name="week_average">Average %1$s a day</string>
     <string name="usage_access_prompt">Tap to allow usage access and see time spent per app</string>
     <string name="work_app_label">%1$s · work</string>
+    <string name="hidden_app_label">%1$s · hidden</string>
+    <string name="menu_pin">Pin to top</string>
+    <string name="menu_unpin">Unpin</string>
+    <string name="menu_hide">Hide</string>
+    <string name="menu_unhide">Unhide</string>
+    <string name="menu_app_info">App info</string>
     <string name="date_format" translatable="false">EEEE, d MMMM</string>
 </resources>

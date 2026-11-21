@@ -15,6 +15,15 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
     private var all: List<AppEntry> = emptyList()
     private var visible: List<AppEntry> = emptyList()
     private var query: String = ""
+    private var pinned: Set<String> = emptySet()
+    private var hidden: Set<String> = emptySet()
+
+    /** Applies pins and hidden apps without reloading anything. */
+    fun setMarks(pinned: Set<String>, hidden: Set<String>) {
+        this.pinned = pinned
+        this.hidden = hidden
+        applyFilter()
+    }
 
     fun submit(apps: List<AppEntry>) {
         all = apps
@@ -27,7 +36,13 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
     }
 
     private fun applyFilter() {
-        visible = if (query.isEmpty()) all else all.filter { it.label.contains(query, ignoreCase = true) }
+        visible = AppOrder.arrange(
+            all,
+            query,
+            label = { it.label },
+            isPinned = { it.key in pinned },
+            isHidden = { it.key in hidden }
+        )
         notifyDataSetChanged()
     }
 
@@ -41,13 +56,15 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         val view = convertView ?: inflater.inflate(R.layout.item_app, parent, false).also { it.tag = Holder(it) }
         val holder = view.tag as Holder
         val app = visible[position]
-        holder.label.text = if (app.isWorkProfile) {
-            view.context.getString(R.string.work_app_label, app.label)
-        } else {
-            app.label
-        }
+        holder.label.text = label(view, app)
         holder.usage.text = app.unusedDays?.let(Unused::label) ?: DurationFormat.forRow(app.usage)
         return view
+    }
+
+    private fun label(view: View, app: AppEntry): String {
+        val name = if (app.isWorkProfile) view.context.getString(R.string.work_app_label, app.label) else app.label
+        // Hidden apps only appear in search results; say so, so they can be found and unhidden.
+        return if (app.key in hidden) view.context.getString(R.string.hidden_app_label, name) else name
     }
 
     private class Holder(view: View) {
