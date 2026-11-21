@@ -21,6 +21,7 @@ import app.aware.launcher.apps.AppAdapter
 import app.aware.launcher.apps.AppEntry
 import app.aware.launcher.apps.AppRepository
 import app.aware.launcher.apps.HomeState
+import app.aware.launcher.usage.Comparison
 import app.aware.launcher.usage.DurationFormat
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -72,7 +73,7 @@ class MainActivity : Activity() {
 
         summary = findViewById(R.id.summary)
         summary.setOnClickListener {
-            if (!usageAccessGranted) startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            if (usageAccessGranted) showWeek() else startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
 
         search = findViewById(R.id.search)
@@ -119,14 +120,30 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun showWeek() {
+        if (loader.isShutdown) return
+        loader.execute {
+            val days = AppRepository.week(applicationContext, cachedApps)
+            runOnUiThread { if (!isDestroyed) WeekDialog.show(this, days) }
+        }
+    }
+
     private fun render(state: HomeState) {
         usageAccessGranted = state.usageAccessGranted
-        summary.text = if (state.usageAccessGranted) {
-            getString(R.string.summary_today, DurationFormat.format(state.totalUsageMillis))
-        } else {
-            getString(R.string.usage_access_prompt)
-        }
+        summary.text = if (state.usageAccessGranted) summaryText(state) else getString(R.string.usage_access_prompt)
         adapter.submit(state.apps)
+    }
+
+    private fun summaryText(state: HomeState): String {
+        val today = DurationFormat.format(state.totalUsageMillis)
+        val yesterday = state.yesterdaySoFarMillis ?: return getString(R.string.summary_today, today)
+        val comparison = Comparison.of(state.totalUsageMillis, yesterday)
+        val difference = DurationFormat.format(comparison.differenceMillis)
+        return when (comparison.direction) {
+            Comparison.Direction.LESS -> getString(R.string.summary_less, today, difference)
+            Comparison.Direction.MORE -> getString(R.string.summary_more, today, difference)
+            Comparison.Direction.SAME -> getString(R.string.summary_same, today)
+        }
     }
 
     private fun resetSearch() {
