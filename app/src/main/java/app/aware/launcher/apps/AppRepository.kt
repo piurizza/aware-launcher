@@ -6,9 +6,16 @@ import android.content.pm.LauncherApps
 import android.os.Process
 import android.os.UserHandle
 import app.aware.launcher.usage.AppUsage
+import app.aware.launcher.usage.DayTotal
 import app.aware.launcher.usage.UsageAccess
+import app.aware.launcher.usage.UsageCalculator
 import app.aware.launcher.usage.UsageTracker
 import java.text.Collator
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 data class AppEntry(
     val label: String,
@@ -18,7 +25,13 @@ data class AppEntry(
     val usage: AppUsage = AppUsage()
 )
 
-data class HomeState(val apps: List<AppEntry>, val usageAccessGranted: Boolean, val totalUsageMillis: Long)
+data class HomeState(
+    val apps: List<AppEntry>,
+    val usageAccessGranted: Boolean,
+    val totalUsageMillis: Long,
+    /** Yesterday's total up to the same time of day, or null when Android kept no data for it. */
+    val yesterdaySoFarMillis: Long?
+)
 
 /** Builds the home screen's data. Called off the main thread. */
 object AppRepository {
@@ -51,19 +64,50 @@ object AppRepository {
      * Attaches today's usage to [apps]. Android keeps usage per profile and Aware can only read its
      * own, so apps in other profiles (such as a work profile) show no usage rather than a wrong one.
      */
-    fun withUsage(context: Context, apps: List<AppEntry>): HomeState {
+    fun withUsage(context: Context, apps: List<AppEntry>, now: Long = System.currentTimeMillis()): HomeState {
         val granted = UsageAccess.isGranted(context)
-        val usage = if (granted) UsageTracker.today(context) else emptyMap()
+        if (!granted) return HomeState(apps, usageAccessGranted = false, 0L, null)
 
+        val usage = UsageTracker.today(context, now)
         val withUsage = apps.map { app ->
             if (app.isWorkProfile) app else app.copy(usage = usage[app.component.packageName] ?: AppUsage())
         }
-        // Count each package once, even if it exposes several launcher activities.
-        val total = withUsage
-            .filterNot { it.isWorkProfile }
-            .map { it.component.packageName }
-            .distinct()
-            .sumOf { usage[it]?.foregroundMillis ?: 0L }
-        return HomeState(withUsage, granted, total)
+        val packages = ownPackages(apps)
+
+        val zone = ZoneId.systemDefault()
+        val todayStart = UsageCalculator.startOfDay(now, zone)
+        val yesterdayStart = UsageCalculator.startOfDay(now, zone, daysAgo = 1)
+        val yesterday = UsageTracker.range(context, yesterdayStart, yesterdayStart + (now - todayStart))
+
+        return HomeState(
+            apps = withUsage,
+            usageAccessGranted = true,
+            totalUsageMillis = total(usage, packages),
+            yesterdaySoFarMillis = yesterday?.let { total(it, packages) }
+        )
     }
+
+    /** Screen time in [apps] for today and the six days before it, newest first. */
+    fun week(context: Context, apps: List<AppEntry>, now: Long = System.currentTimeMillis()): List<DayTotal> {
+        val zone = ZoneId.systemDefault()
+        val packages = ownPackages(apps)
+        val formatter = DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())
+        return (0L until DAYS_IN_WEEK).map { daysAgo ->
+            val start = UsageCalculator.startOfDay(now, zone, daysAgo)
+            val end = if (daysAgo == 0L) now else start + TimeUnit.DAYS.toMillis(1)
+            val label = formatter.format(Instant.ofEpochMilli(start).atZone(zone))
+            DayTotal(label, UsageTracker.range(context, start, minOf(end, now))?.let { total(it, packages) })
+        }
+    }
+
+    // Android keeps usage per profile and Aware can only read its own, so apps in other profiles
+    // (such as a work profile) show no usage rather than a wrong one.
+    private fun ownPackages(apps: List<AppEntry>): Set<String> =
+        apps.filterNot { it.isWorkProfile }.map { it.component.packageName }.toSet()
+
+    // Each package counts once, even if it exposes several launcher activities.
+    private fun total(usage: Map<String, AppUsage>, packages: Set<String>): Long =
+        packages.sumOf { usage[it]?.foregroundMillis ?: 0L }
+
+    private const val DAYS_IN_WEEK = 7L
 }
