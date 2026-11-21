@@ -6,4 +6,6 @@
     <color name="text_secondary">#FF8A8A8A</color>
     <!-- Warm, not alarming: past a daily limit. -->
     <color name="over_limit">#FFE8A15A</color>
+    <!-- Calm green: an app still running in the background. -->
+    <color name="running">#FF6FCF97</color>
 </resources>

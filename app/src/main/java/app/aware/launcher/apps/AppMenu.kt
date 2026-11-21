@@ -31,6 +31,8 @@ class AppMenu(
         )
         // Android keeps work-profile usage separately, so limits only apply to this profile's apps.
         if (!app.isWorkProfile) popup.menu.add(Menu.NONE, LIMIT, Menu.NONE, limitTitle(anchor.context, app))
+        // Android lets no app stop another, so this opens App info, where Force stop is one tap away.
+        if (app.isRunningInBackground) popup.menu.add(Menu.NONE, STOP, Menu.NONE, R.string.menu_stop)
         popup.menu.add(Menu.NONE, APP_INFO, Menu.NONE, R.string.menu_app_info)
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -38,9 +40,9 @@ class AppMenu(
                 HIDE -> prefs.setHidden(app, !isHidden)
                 DISTRACTING -> prefs.setDistracting(app, !isDistracting)
                 LIMIT -> showLimitPicker(anchor.context, app)
-                APP_INFO -> onAppInfo(app)
+                APP_INFO, STOP -> onAppInfo(app)
             }
-            if (item.itemId != APP_INFO && item.itemId != LIMIT) onChanged()
+            if (item.itemId in PREFERENCE_ITEMS) onChanged()
             true
         }
         popup.show()
@@ -84,5 +86,7 @@ class AppMenu(
         const val APP_INFO = 3
         const val DISTRACTING = 4
         const val LIMIT = 5
+        const val STOP = 6
+        val PREFERENCE_ITEMS = setOf(PIN, HIDE, DISTRACTING)
     }
 }

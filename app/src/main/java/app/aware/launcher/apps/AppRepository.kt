@@ -26,7 +26,9 @@ data class AppEntry(
     val installedAt: Long,
     val usage: AppUsage = AppUsage(),
     /** Days since last opened, when that is at least [Unused.THRESHOLD_DAYS]; null otherwise. */
-    val unusedDays: Int? = null
+    val unusedDays: Int? = null,
+    /** Running a foreground service right now (music, navigation, a call, a VPN…). */
+    val isRunningInBackground: Boolean = false
 ) {
     /** Stable identity for per-app settings; work-profile copies are kept apart. */
     val key: String get() = (if (isWorkProfile) "work/" else "") + component.flattenToShortString()
@@ -78,12 +80,17 @@ object AppRepository {
 
         val usage = UsageTracker.today(context, now)
         val lastVisible = UsageTracker.lastVisible(context, now)
+        val running = UsageTracker.runningInBackground(context, now)
         val withUsage = apps.map { app ->
             if (app.isWorkProfile) return@map app
             val pkg = app.component.packageName
             val today = usage[pkg] ?: AppUsage()
             val usedToday = today.opens > 0 || today.foregroundMillis > 0
-            app.copy(usage = today, unusedDays = Unused.days(lastVisible[pkg], app.installedAt, now, usedToday))
+            app.copy(
+                usage = today,
+                unusedDays = Unused.days(lastVisible[pkg], app.installedAt, now, usedToday),
+                isRunningInBackground = pkg in running
+            )
         }
         val packages = ownPackages(apps)
 
