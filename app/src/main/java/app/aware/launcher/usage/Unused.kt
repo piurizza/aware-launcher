@@ -21,6 +21,6 @@ object Unused {
         return days.takeIf { it >= THRESHOLD_DAYS }
     }
 
-    /** "unopened 45d", or "unopened 1y+" past a year. */
-    fun label(days: Int): String = if (days >= DAYS_PER_YEAR) "unopened 1y+" else "unopened ${days}d"
+    /** Past a year, the exact number of days stops meaning much. */
+    fun isOverAYear(days: Int): Boolean = days >= DAYS_PER_YEAR
 }

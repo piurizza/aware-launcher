@@ -35,6 +35,16 @@
     <string name="menu_stop">Stop… (running in background)</string>
     <string name="running_dot" translatable="false">●</string>
     <string name="running_description">%1$s, running in background</string>
+    <plurals name="info_today">
+        <item quantity="one">%1$s today · opened %2$d time</item>
+        <item quantity="other">%1$s today · opened %2$d times</item>
+    </plurals>
+    <plurals name="info_unopened_days">
+        <item quantity="one">Not opened in %d day</item>
+        <item quantity="other">Not opened in %d days</item>
+    </plurals>
+    <string name="info_unopened_year">Not opened in over a year</string>
+    <string name="info_not_today">Not opened today</string>
     <string name="menu_app_info">App info</string>
     <string name="date_format" translatable="false">EEEE, d MMMM</string>
 </resources>

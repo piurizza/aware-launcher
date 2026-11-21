@@ -11,11 +11,8 @@ data class Limit(val limitMillis: Long, val usedMillis: Long) {
     /** Time left before the limit, or time spent past it once [isReached]. */
     val differenceMillis: Long get() = abs(limitMillis - usedMillis)
 
-    /** Row label with the limit: "12m / 30m", plus opens when there are any: "12m / 30m · 5×". */
-    fun rowLabel(opens: Int): String {
-        val time = "${DurationFormat.format(usedMillis)} / ${DurationFormat.format(limitMillis)}"
-        return if (opens > 0) "$time · $opens×" else time
-    }
+    /** Row label with the limit: "12m / 30m". */
+    fun rowLabel(): String = "${DurationFormat.format(usedMillis)} / ${DurationFormat.format(limitMillis)}"
 
     companion object {
         /** Choices offered in the menu, in minutes; 0 means no limit. */

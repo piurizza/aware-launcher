@@ -3,8 +3,7 @@
 A minimalist Android launcher that shows how much time you spend in each app today.
 
 No icons, no widgets, no feeds. A clock, today's screen time compared with yesterday, a search
-field and a plain list of your apps, each with the time spent and the number of times you opened it
-today. The point is to make you pause for a second before opening something.
+field and a plain list of your apps, each with the time spent in it today. The point is to make you pause for a second before opening something.
 
 ```
 14:32
@@ -13,11 +12,11 @@ Saturday, 21 November
 
 Search
 
-Messages                    8m · 12×
+Messages                          8m
 Camera
-Instagram            47m / 30m · 23×
-Maps                        12m · 2×
-Old Game                unopened 45d
+Instagram                  47m / 30m
+Maps  ●                          12m
+Old Game
 ```
 
 ## Design goals
@@ -51,7 +50,11 @@ Old Game                unopened 45d
 | Daily limit… | Shows usage against the limit (`47m / 30m`), turns amber once reached, and adds the pause from then on. Nothing is ever blocked. |
 | App info | Android's app info screen (uninstall, permissions…). |
 
-Apps you haven't opened in 30+ days show `unopened 45d`: a hint they could go.
+Apps you haven't opened in 30+ days are dimmed: a hint they could go. Apps still running in the
+background (music, navigation, a call…) get a small green ●.
+
+The long-press menu starts with the app's details, such as "47m today · opened 19 times" or
+"Not opened in 45 days".
 
 Usage is per Android profile, so work-profile apps (marked `· work`) show no times and have no limits.
 

@@ -11,7 +11,6 @@ import android.widget.TextView
 import app.aware.launcher.R
 import app.aware.launcher.usage.DurationFormat
 import app.aware.launcher.usage.Limit
-import app.aware.launcher.usage.Unused
 
 /** Plain-text app list. Uses the framework ListView so there are no library dependencies. */
 class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
@@ -73,14 +72,14 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         } else {
             null
         }
+        // Apps not opened for weeks are dimmed: a quiet hint, with details in the long-press menu.
+        val nameColor = if (app.unusedDays != null) R.color.text_secondary else R.color.text_primary
+        holder.label.setTextColor(view.context.getColor(nameColor))
+
         val limit = limitFor(app)
-        holder.usage.text = when {
-            app.unusedDays != null -> Unused.label(app.unusedDays)
-            limit != null -> limit.rowLabel(app.usage.opens)
-            else -> DurationFormat.forRow(app.usage)
-        }
-        val color = if (limit?.isReached == true) R.color.over_limit else R.color.text_secondary
-        holder.usage.setTextColor(view.context.getColor(color))
+        holder.usage.text = limit?.rowLabel() ?: DurationFormat.forRow(app.usage.foregroundMillis)
+        val usageColor = if (limit?.isReached == true) R.color.over_limit else R.color.text_secondary
+        holder.usage.setTextColor(view.context.getColor(usageColor))
         return view
     }
 

@@ -2,7 +2,9 @@ package app.aware.launcher.usage
 
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UnusedTest {
@@ -33,8 +35,8 @@ class UnusedTest {
     }
 
     @Test
-    fun `labels cap at a year`() {
-        assertEquals("unopened 45d", Unused.label(45))
-        assertEquals("unopened 1y+", Unused.label(400))
+    fun `a year or more counts as over a year`() {
+        assertFalse(Unused.isOverAYear(364))
+        assertTrue(Unused.isOverAYear(365))
     }
 }
