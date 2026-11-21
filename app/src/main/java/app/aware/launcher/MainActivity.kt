@@ -159,7 +159,7 @@ class MainActivity : Activity() {
     }
 
     private fun applyMarks() {
-        adapter.setMarks(prefs.pinned, prefs.hidden)
+        adapter.setMarks(prefs.pinned, prefs.hidden, prefs.limits)
     }
 
     private fun summaryText(state: HomeState): String {
@@ -180,9 +180,11 @@ class MainActivity : Activity() {
         getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(search.windowToken, 0)
     }
 
-    /** Opens [app], after a mindful pause if it is marked as distracting. */
+    /** Opens [app], after a mindful pause if it is marked as distracting or past its daily limit. */
     private fun launch(app: AppEntry) {
-        if (app.key in prefs.distracting) PauseDialog.show(this, app) { start(app) } else start(app)
+        val limit = adapter.limitFor(app)
+        val pause = app.key in prefs.distracting || limit?.isReached == true
+        if (pause) PauseDialog.show(this, app, limit) { start(app) } else start(app)
     }
 
     private fun start(app: AppEntry) {
