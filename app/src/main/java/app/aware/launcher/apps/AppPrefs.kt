@@ -13,10 +13,13 @@ class AppPrefs(context: Context) {
 
     val pinned: Set<String> get() = read(PINNED)
     val hidden: Set<String> get() = read(HIDDEN)
+    val distracting: Set<String> get() = read(DISTRACTING)
 
     fun setPinned(app: AppEntry, pinned: Boolean) = write(PINNED, app.key, pinned)
 
     fun setHidden(app: AppEntry, hidden: Boolean) = write(HIDDEN, app.key, hidden)
+
+    fun setDistracting(app: AppEntry, distracting: Boolean) = write(DISTRACTING, app.key, distracting)
 
     // Copy: the set returned by getStringSet must not be modified.
     private fun read(name: String): Set<String> = prefs.getStringSet(name, null)?.toSet().orEmpty()
@@ -30,5 +33,6 @@ class AppPrefs(context: Context) {
         const val FILE = "aware"
         const val PINNED = "pinned"
         const val HIDDEN = "hidden"
+        const val DISTRACTING = "distracting"
     }
 }

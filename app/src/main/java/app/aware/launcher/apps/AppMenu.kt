@@ -15,14 +15,22 @@ class AppMenu(
     fun show(anchor: View, app: AppEntry) {
         val isPinned = app.key in prefs.pinned
         val isHidden = app.key in prefs.hidden
+        val isDistracting = app.key in prefs.distracting
         val popup = PopupMenu(anchor.context, anchor)
         popup.menu.add(Menu.NONE, PIN, Menu.NONE, if (isPinned) R.string.menu_unpin else R.string.menu_pin)
         popup.menu.add(Menu.NONE, HIDE, Menu.NONE, if (isHidden) R.string.menu_unhide else R.string.menu_hide)
+        popup.menu.add(
+            Menu.NONE,
+            DISTRACTING,
+            Menu.NONE,
+            if (isDistracting) R.string.menu_not_distracting else R.string.menu_distracting
+        )
         popup.menu.add(Menu.NONE, APP_INFO, Menu.NONE, R.string.menu_app_info)
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 PIN -> prefs.setPinned(app, !isPinned)
                 HIDE -> prefs.setHidden(app, !isHidden)
+                DISTRACTING -> prefs.setDistracting(app, !isDistracting)
                 APP_INFO -> onAppInfo(app)
             }
             if (item.itemId != APP_INFO) onChanged()
@@ -35,5 +43,6 @@ class AppMenu(
         const val PIN = 1
         const val HIDE = 2
         const val APP_INFO = 3
+        const val DISTRACTING = 4
     }
 }

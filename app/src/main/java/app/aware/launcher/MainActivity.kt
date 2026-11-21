@@ -26,6 +26,7 @@ import app.aware.launcher.apps.AppRepository
 import app.aware.launcher.apps.HomeState
 import app.aware.launcher.gestures.NotificationShade
 import app.aware.launcher.gestures.SwipeDownDetector
+import app.aware.launcher.pause.PauseDialog
 import app.aware.launcher.usage.Comparison
 import app.aware.launcher.usage.DurationFormat
 import java.util.concurrent.ExecutorService
@@ -179,7 +180,12 @@ class MainActivity : Activity() {
         getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(search.windowToken, 0)
     }
 
+    /** Opens [app], after a mindful pause if it is marked as distracting. */
     private fun launch(app: AppEntry) {
+        if (app.key in prefs.distracting) PauseDialog.show(this, app) { start(app) } else start(app)
+    }
+
+    private fun start(app: AppEntry) {
         try {
             launcherApps.startMainActivity(app.component, app.user, null, null)
         } catch (e: ActivityNotFoundException) {
