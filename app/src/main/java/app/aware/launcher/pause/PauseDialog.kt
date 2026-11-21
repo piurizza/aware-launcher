@@ -8,6 +8,7 @@ import android.os.Looper
 import app.aware.launcher.R
 import app.aware.launcher.apps.AppEntry
 import app.aware.launcher.usage.DurationFormat
+import app.aware.launcher.usage.Limit
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,10 +20,10 @@ object PauseDialog {
 
     const val DELAY_SECONDS = 3
 
-    fun show(activity: Activity, app: AppEntry, onOpen: () -> Unit) {
+    fun show(activity: Activity, app: AppEntry, limit: Limit?, onOpen: () -> Unit) {
         val dialog = AlertDialog.Builder(activity)
             .setTitle(app.label)
-            .setMessage(message(activity, app))
+            .setMessage(message(activity, app, limit))
             .setPositiveButton(R.string.pause_open) { _, _ -> onOpen() }
             .setNegativeButton(R.string.pause_not_now, null)
             .create()
@@ -48,12 +49,21 @@ object PauseDialog {
         }
     }
 
-    private fun message(activity: Activity, app: AppEntry): String {
+    private fun message(activity: Activity, app: AppEntry, limit: Limit?): String {
         val question = activity.getString(R.string.pause_question)
         // Android keeps work-profile usage separately, so there are no numbers to show for those apps.
         if (app.isWorkProfile) return question
         val time = activity.getString(R.string.pause_time, DurationFormat.format(app.usage.foregroundMillis))
         val opens = activity.resources.getQuantityString(R.plurals.pause_opens, app.usage.opens, app.usage.opens)
-        return "$time\n$opens\n\n$question"
+        val lines = mutableListOf(time, opens)
+        if (limit != null) lines += limitLine(activity, limit)
+        return lines.joinToString("\n") + "\n\n" + question
+    }
+
+    private fun limitLine(activity: Activity, limit: Limit): String {
+        val max = DurationFormat.format(limit.limitMillis)
+        val difference = DurationFormat.format(limit.differenceMillis)
+        val text = if (limit.isReached) R.string.pause_limit_over else R.string.pause_limit_left
+        return activity.getString(text, max, difference)
     }
 }

@@ -7,6 +7,7 @@ import android.widget.BaseAdapter
 import android.widget.TextView
 import app.aware.launcher.R
 import app.aware.launcher.usage.DurationFormat
+import app.aware.launcher.usage.Limit
 import app.aware.launcher.usage.Unused
 
 /** Plain-text app list. Uses the framework ListView so there are no library dependencies. */
@@ -17,13 +18,20 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
     private var query: String = ""
     private var pinned: Set<String> = emptySet()
     private var hidden: Set<String> = emptySet()
+    private var limits: Map<String, Int> = emptyMap()
 
-    /** Applies pins and hidden apps without reloading anything. */
-    fun setMarks(pinned: Set<String>, hidden: Set<String>) {
+    /** Applies pins, hidden apps and limits without reloading anything. */
+    fun setMarks(pinned: Set<String>, hidden: Set<String>, limits: Map<String, Int>) {
         this.pinned = pinned
         this.hidden = hidden
+        this.limits = limits
         applyFilter()
     }
+
+    /** Today's usage against the app's daily limit, or null when it has none. */
+    fun limitFor(app: AppEntry): Limit? = limits[app.key]
+        ?.takeUnless { app.isWorkProfile }
+        ?.let { Limit(Limit.minutesToMillis(it), app.usage.foregroundMillis) }
 
     fun submit(apps: List<AppEntry>) {
         all = apps
@@ -57,7 +65,14 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         val holder = view.tag as Holder
         val app = visible[position]
         holder.label.text = label(view, app)
-        holder.usage.text = app.unusedDays?.let(Unused::label) ?: DurationFormat.forRow(app.usage)
+        val limit = limitFor(app)
+        holder.usage.text = when {
+            app.unusedDays != null -> Unused.label(app.unusedDays)
+            limit != null -> limit.rowLabel(app.usage.opens)
+            else -> DurationFormat.forRow(app.usage)
+        }
+        val color = if (limit?.isReached == true) R.color.over_limit else R.color.text_secondary
+        holder.usage.setTextColor(view.context.getColor(color))
         return view
     }
 

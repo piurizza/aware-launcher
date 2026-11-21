@@ -26,6 +26,12 @@
         <item quantity="one">Opened %d time today</item>
         <item quantity="other">Opened %d times today</item>
     </plurals>
+    <string name="menu_limit">Daily limit…</string>
+    <string name="menu_limit_set">Daily limit: %1$s</string>
+    <string name="limit_title">Daily limit for %1$s</string>
+    <string name="limit_none">No limit</string>
+    <string name="pause_limit_left">Limit %1$s · %2$s left</string>
+    <string name="pause_limit_over">Limit %1$s · %2$s over</string>
     <string name="menu_app_info">App info</string>
     <string name="date_format" translatable="false">EEEE, d MMMM</string>
 </resources>

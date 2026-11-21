@@ -1,9 +1,13 @@
 package app.aware.launcher.apps
 
+import android.app.AlertDialog
+import android.content.Context
 import android.view.Menu
 import android.view.View
 import android.widget.PopupMenu
 import app.aware.launcher.R
+import app.aware.launcher.usage.DurationFormat
+import app.aware.launcher.usage.Limit
 
 /** The long-press menu on an app row. */
 class AppMenu(
@@ -25,18 +29,53 @@ class AppMenu(
             Menu.NONE,
             if (isDistracting) R.string.menu_not_distracting else R.string.menu_distracting
         )
+        // Android keeps work-profile usage separately, so limits only apply to this profile's apps.
+        if (!app.isWorkProfile) popup.menu.add(Menu.NONE, LIMIT, Menu.NONE, limitTitle(anchor.context, app))
         popup.menu.add(Menu.NONE, APP_INFO, Menu.NONE, R.string.menu_app_info)
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 PIN -> prefs.setPinned(app, !isPinned)
                 HIDE -> prefs.setHidden(app, !isHidden)
                 DISTRACTING -> prefs.setDistracting(app, !isDistracting)
+                LIMIT -> showLimitPicker(anchor.context, app)
                 APP_INFO -> onAppInfo(app)
             }
-            if (item.itemId != APP_INFO) onChanged()
+            if (item.itemId != APP_INFO && item.itemId != LIMIT) onChanged()
             true
         }
         popup.show()
+    }
+
+    private fun limitTitle(context: Context, app: AppEntry): String {
+        val minutes = prefs.limits[app.key]
+        return if (minutes == null) {
+            context.getString(R.string.menu_limit)
+        } else {
+            context.getString(R.string.menu_limit_set, DurationFormat.format(Limit.minutesToMillis(minutes)))
+        }
+    }
+
+    private fun showLimitPicker(context: Context, app: AppEntry) {
+        val choices = Limit.CHOICES_MINUTES
+        val labels = choices.map { minutes ->
+            if (minutes ==
+                0
+            ) {
+                context.getString(R.string.limit_none)
+            } else {
+                DurationFormat.format(Limit.minutesToMillis(minutes))
+            }
+        }
+        val current = choices.indexOf(prefs.limits[app.key] ?: 0).coerceAtLeast(0)
+        AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.limit_title, app.label))
+            .setSingleChoiceItems(labels.toTypedArray(), current) { dialog, which ->
+                prefs.setLimit(app, choices[which])
+                onChanged()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private companion object {
@@ -44,5 +83,6 @@ class AppMenu(
         const val HIDE = 2
         const val APP_INFO = 3
         const val DISTRACTING = 4
+        const val LIMIT = 5
     }
 }

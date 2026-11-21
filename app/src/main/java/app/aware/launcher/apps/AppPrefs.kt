@@ -21,6 +21,19 @@ class AppPrefs(context: Context) {
 
     fun setDistracting(app: AppEntry, distracting: Boolean) = write(DISTRACTING, app.key, distracting)
 
+    /** Daily limits in minutes, by [AppEntry.key]. */
+    val limits: Map<String, Int>
+        get() = prefs.all.mapNotNull { (name, value) ->
+            if (name.startsWith(LIMIT_PREFIX) && value is Int) name.removePrefix(LIMIT_PREFIX) to value else null
+        }.toMap()
+
+    /** Sets the daily limit; 0 removes it. */
+    fun setLimit(app: AppEntry, minutes: Int) {
+        val editor = prefs.edit()
+        if (minutes > 0) editor.putInt(LIMIT_PREFIX + app.key, minutes) else editor.remove(LIMIT_PREFIX + app.key)
+        editor.apply()
+    }
+
     // Copy: the set returned by getStringSet must not be modified.
     private fun read(name: String): Set<String> = prefs.getStringSet(name, null)?.toSet().orEmpty()
 
@@ -34,5 +47,6 @@ class AppPrefs(context: Context) {
         const val PINNED = "pinned"
         const val HIDDEN = "hidden"
         const val DISTRACTING = "distracting"
+        const val LIMIT_PREFIX = "limit:"
     }
 }
