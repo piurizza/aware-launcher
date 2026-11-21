@@ -40,7 +40,11 @@ class AppAdapter(private val inflater: LayoutInflater) : BaseAdapter() {
         val view = convertView ?: inflater.inflate(R.layout.item_app, parent, false).also { it.tag = Holder(it) }
         val holder = view.tag as Holder
         val app = visible[position]
-        holder.label.text = app.label
+        holder.label.text = if (app.isWorkProfile) {
+            view.context.getString(R.string.work_app_label, app.label)
+        } else {
+            app.label
+        }
         holder.usage.text = DurationFormat.forRow(app.usageMillis)
         return view
     }

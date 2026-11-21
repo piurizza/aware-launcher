@@ -24,6 +24,7 @@ import app.aware.launcher.apps.HomeState
 import app.aware.launcher.usage.DurationFormat
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * The whole launcher: a clock, today's total screen time, a search field and a text list of apps
@@ -39,14 +40,20 @@ class MainActivity : Activity() {
     private lateinit var summary: TextView
     private var usageAccessGranted = true
 
+    // The app list is only reloaded when packages change; usage is re-read on every return home.
+    private val appsStale = AtomicBoolean(true)
+
+    // Touched only on the loader thread.
+    private var cachedApps: List<AppEntry> = emptyList()
+
     private val packageCallback = object : LauncherApps.Callback() {
-        override fun onPackageRemoved(packageName: String, user: UserHandle) = refresh()
-        override fun onPackageAdded(packageName: String, user: UserHandle) = refresh()
-        override fun onPackageChanged(packageName: String, user: UserHandle) = refresh()
+        override fun onPackageRemoved(packageName: String, user: UserHandle) = onPackagesChanged()
+        override fun onPackageAdded(packageName: String, user: UserHandle) = onPackagesChanged()
+        override fun onPackageChanged(packageName: String, user: UserHandle) = onPackagesChanged()
         override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) =
-            refresh()
+            onPackagesChanged()
         override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) =
-            refresh()
+            onPackagesChanged()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,10 +105,16 @@ class MainActivity : Activity() {
         super.onDestroy()
     }
 
+    private fun onPackagesChanged() {
+        appsStale.set(true)
+        refresh()
+    }
+
     private fun refresh() {
         if (loader.isShutdown) return
         loader.execute {
-            val state = AppRepository.load(applicationContext)
+            if (appsStale.getAndSet(false)) cachedApps = AppRepository.loadApps(applicationContext)
+            val state = AppRepository.withUsage(applicationContext, cachedApps)
             runOnUiThread { if (!isDestroyed) render(state) }
         }
     }
@@ -127,7 +140,7 @@ class MainActivity : Activity() {
             launcherApps.startMainActivity(app.component, app.user, null, null)
         } catch (e: ActivityNotFoundException) {
             Log.w(TAG, "App no longer launchable: ${app.component}", e)
-            refresh()
+            onPackagesChanged()
         } catch (e: SecurityException) {
             Log.w(TAG, "Not allowed to launch ${app.component}", e)
         }

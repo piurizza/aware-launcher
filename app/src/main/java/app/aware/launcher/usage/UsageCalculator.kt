@@ -34,7 +34,9 @@ object UsageCalculator {
         val totals = HashMap<String, Long>()
         var current: String? = null
         var since = windowStart
-        var isFirstEvent = true
+        // Until the first resume, the app open at the window start is unknown; a pause reveals it.
+        var resumeSeen = false
+        var startCredited = false
 
         fun close(at: Long) {
             val open = current ?: return
@@ -46,24 +48,28 @@ object UsageCalculator {
 
         for (event in events.sortedBy { it.timestamp }) {
             when (event.type) {
-                ForegroundEvent.Type.RESUMED -> if (current != event.packageName) {
-                    close(event.timestamp)
-                    current = event.packageName
-                    since = event.timestamp.coerceIn(windowStart, windowEnd)
+                ForegroundEvent.Type.RESUMED -> {
+                    resumeSeen = true
+                    if (current != event.packageName) {
+                        close(event.timestamp)
+                        current = event.packageName
+                        since = event.timestamp.coerceIn(windowStart, windowEnd)
+                    }
                 }
 
                 ForegroundEvent.Type.PAUSED -> {
-                    // A pause with no matching resume means the app was already open when the window began.
-                    if (isFirstEvent && current == null) {
+                    // A pause before any resume means the app was already open when the window began,
+                    // even if a screen-off event was logged before it.
+                    if (current == null && !resumeSeen && !startCredited) {
                         current = event.packageName
                         since = windowStart
+                        startCredited = true
                     }
                     if (current == event.packageName) close(event.timestamp)
                 }
 
                 ForegroundEvent.Type.STOP_ALL -> close(event.timestamp)
             }
-            isFirstEvent = false
         }
         close(windowEnd)
         return totals
