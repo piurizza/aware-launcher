@@ -19,6 +19,8 @@ import android.widget.ListView
 import android.widget.TextView
 import app.aware.launcher.apps.AppAdapter
 import app.aware.launcher.apps.AppEntry
+import app.aware.launcher.apps.AppMenu
+import app.aware.launcher.apps.AppPrefs
 import app.aware.launcher.apps.AppRepository
 import app.aware.launcher.apps.HomeState
 import app.aware.launcher.usage.Comparison
@@ -36,6 +38,8 @@ class MainActivity : Activity() {
     private val loader: ExecutorService = Executors.newSingleThreadExecutor()
     private lateinit var launcherApps: LauncherApps
     private lateinit var adapter: AppAdapter
+    private lateinit var prefs: AppPrefs
+    private lateinit var menu: AppMenu
     private lateinit var list: ListView
     private lateinit var search: EditText
     private lateinit var summary: TextView
@@ -62,12 +66,14 @@ class MainActivity : Activity() {
         setContentView(R.layout.activity_main)
         launcherApps = getSystemService(LauncherApps::class.java)
 
+        prefs = AppPrefs(this)
         adapter = AppAdapter(layoutInflater)
+        menu = AppMenu(prefs, onChanged = ::applyMarks, onAppInfo = ::openAppInfo)
         list = findViewById(R.id.app_list)
         list.adapter = adapter
         list.setOnItemClickListener { _, _, position, _ -> launch(adapter.getItem(position)) }
-        list.setOnItemLongClickListener { _, _, position, _ ->
-            openAppInfo(adapter.getItem(position))
+        list.setOnItemLongClickListener { _, view, position, _ ->
+            menu.show(view, adapter.getItem(position))
             true
         }
 
@@ -132,6 +138,11 @@ class MainActivity : Activity() {
         usageAccessGranted = state.usageAccessGranted
         summary.text = if (state.usageAccessGranted) summaryText(state) else getString(R.string.usage_access_prompt)
         adapter.submit(state.apps)
+        applyMarks()
+    }
+
+    private fun applyMarks() {
+        adapter.setMarks(prefs.pinned, prefs.hidden)
     }
 
     private fun summaryText(state: HomeState): String {

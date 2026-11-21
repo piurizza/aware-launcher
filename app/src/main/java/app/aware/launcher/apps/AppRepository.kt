@@ -27,7 +27,10 @@ data class AppEntry(
     val usage: AppUsage = AppUsage(),
     /** Days since last opened, when that is at least [Unused.THRESHOLD_DAYS]; null otherwise. */
     val unusedDays: Int? = null
-)
+) {
+    /** Stable identity for per-app settings; work-profile copies are kept apart. */
+    val key: String get() = (if (isWorkProfile) "work/" else "") + component.flattenToShortString()
+}
 
 data class HomeState(
     val apps: List<AppEntry>,
