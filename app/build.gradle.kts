@@ -115,7 +115,7 @@ tasks.withType<Detekt>().configureEach {
 configurations.matching { it.name == "detekt" }.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "org.jetbrains.kotlin") {
-            useVersion(libs.versions.detekt.kotlin.get())
+            useVersion(libs.versions.detektKotlin.get())
         }
     }
 }
