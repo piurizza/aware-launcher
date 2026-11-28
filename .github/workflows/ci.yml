@@ -61,21 +61,21 @@ jobs:
       # Findings show up inline on pull requests and in the Security tab.
       - name: Upload detekt findings
         if: ${{ !cancelled() && hashFiles('sarif/detekt/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           sarif_file: sarif/detekt
           category: detekt
 
       - name: Upload ktlint findings
         if: ${{ !cancelled() && hashFiles('sarif/ktlint/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           sarif_file: sarif/ktlint
           category: ktlint
 
       - name: Upload Android Lint findings
         if: ${{ !cancelled() && hashFiles('sarif/android-lint/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           sarif_file: sarif/android-lint
           category: android-lint
